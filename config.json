@@ -1,0 +1,15 @@
+{
+    "kor_vocab_length": 50000,
+    "eng_vocab_length": 28998,
+    "d_model": 768,
+    "d_ff": 2048,
+    "d_k": 64,
+    "d_v": 64,
+    "num_layers": 12,
+    "num_heads": 8,
+    "start_word": "[SOS]",
+    "end_word": "[EOS]",
+    "sep_word": "[SEP]",
+    "cls_word": "[CLS]",
+    "pad_word": "[PAD]"
+}
