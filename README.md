@@ -83,6 +83,23 @@ eng_tokenizer.tokenize('In Chapter 11 Jesus called Lazarus from the tomb and rai
 }
 ```
 
+## Test Command
+
+* Emotion Classification
+```
+python example_classifier.py
+```
+
+* Text Generation
+```
+python example_generate.py
+```
+
+* Translation
+```
+python example_translation.py
+```
+
 ## Reference
 
 * [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
