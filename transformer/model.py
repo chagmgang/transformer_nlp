@@ -20,6 +20,11 @@ def get_attn_subsequent_mask(seq):
     subsequent_mask = torch.from_numpy(subsequent_mask).int()
     return subsequent_mask
 
+class GELU(nn.Module):
+
+    def forward(self, x):
+        return 0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
+
 class PositionalEncoding(nn.Module):
     "Implement the PE function."
     def __init__(self, d_model, dropout, max_len=5000):
@@ -95,7 +100,7 @@ class PoswiseFeedForwardNet(nn.Module):
         self.l1 = nn.Linear(d_model, d_ff)
         self.l2 = nn.Linear(d_ff, d_model)
 
-        self.relu = nn.ReLU()
+        self.relu = GELU()
         self.layer_norm = nn.LayerNorm(d_model)
 
     def forward(self, inputs):
@@ -279,17 +284,52 @@ class BertModel(nn.Module):
                  d_k, d_v, n_heads, n_layers, pad_index,
                  device):
         super(BertModel, self).__init__()
-        self.encoder = Encoder(
-            vocab_size=vocab_size, d_model=d_model,
-            d_ff=d_ff, d_k=d_k, d_v=d_v,
-            n_heads=n_heads, n_layers=n_layers, pad_index=pad_index,
-            device=device)
-        self.projection = nn.Linear(d_model, vocab_size, bias=False)
+        self.tok_embed = nn.Embedding(vocab_size, d_model)
+        self.pos_embed = PositionalEncoding(
+            d_model=d_model,
+            dropout=0)
+        self.seg_embed = nn.Embedding(2, d_model)
 
-    def forward(self, enc_inputs):
-        enc_outputs, enc_self_attns = self.encoder(enc_inputs)
-        logits = self.projection(enc_outputs)
-        return logits, enc_self_attns, enc_outputs
+        self.layers = []
+        for _ in range(n_layers):
+            encoder_layer = EncoderLayer(
+                d_model=d_model, d_ff=d_ff,
+                d_k=d_k, d_v=d_v, n_heads=n_heads,
+                device=device)
+            self.layers.append(encoder_layer)
+        self.layers = nn.ModuleList(self.layers)
+
+        self.pad_index = pad_index
+
+        self.fc = nn.Linear(d_model, d_model)
+        self.active1 = nn.Tanh()
+        self.classifier = nn.Linear(d_model, 2)
+
+        self.linear = nn.Linear(d_model, d_model)
+        self.active2 = GELU()
+        self.norm = nn.LayerNorm(d_model)
+
+        self.decoder = nn.Linear(d_model, vocab_size, bias=False)
+        self.decoder.weight = self.tok_embed.weight
+        self.decoder_bias = nn.Parameter(torch.zeros(vocab_size))
+
+    def forward(self, input_ids, segment_ids, masked_pos):
+        output = self.tok_embed(input_ids) + self.seg_embed(segment_ids)
+        output = self.pos_embed(output)
+        enc_self_attn_mask = get_attn_pad_mask(input_ids, input_ids, self.pad_index)
+
+        for layer in self.layers:
+            output, enc_self_attn = layer(output, enc_self_attn_mask)
+
+        h_pooled = self.active1(self.fc(output[:, 0]))
+        logits_clsf = self.classifier(h_pooled)
+
+        masked_pos = masked_pos[:, :, None].expand(-1, -1, output.size(-1))
+        h_masked = torch.gather(output, 1, masked_pos)
+        h_masked = self.norm(self.active2(self.linear(h_masked)))
+        logits_lm = self.decoder(h_masked) + self.decoder_bias
+
+        return logits_lm, logits_clsf, output
 
 class GPTModel(nn.Module):
 

@@ -46,7 +46,7 @@ def train():
 
     train_step = 0
 
-    for epoch in range(20):
+    for epoch in range(3):
 
         for step, (texts, labels) in enumerate(train_loader):
             texts, labels = texts.to(device), labels.to(device)
