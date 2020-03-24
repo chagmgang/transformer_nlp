@@ -1,6 +1,67 @@
 import tokenization
 import pandas
 import torch
+import copy
+
+import numpy as np
+
+class MaskedLMDataset(torch.utils.data.Dataset):
+
+    def __init__(self, tokenizer, text_file,
+                 token_length, padding_word='[PAD]',
+                 masked_word='[MASK]', mask_ratio=0.15):
+
+        self.tokenizer = tokenizer
+        self.text_file = text_file
+        self.token_length = token_length
+        self.padding_word = padding_word
+        self.masked_word = masked_word
+        self.mask_ratio = mask_ratio
+
+        self.text = open(self.text_file)
+        self.lines = []
+        while True:
+            line = self.text.readline()
+            if not line: break
+            self.lines.append(line.replace('\n', ''))
+        self.text.close()
+
+    def __getitem__(self, idx):
+        text = self.lines[idx]
+        
+        tokens = self.tokenizer.tokenize(text)
+        tokens = tokens[:self.token_length]
+
+        masked_idxs = np.arange(len(tokens))
+        np.random.shuffle(masked_idxs)
+        masked_idxs = masked_idxs[:int(self.mask_ratio * len(tokens))]
+        
+        original_tokens = copy.deepcopy(tokens)
+        masked_tokens = copy.deepcopy(tokens)
+
+        for masked_idx in masked_idxs:
+            masked_tokens[masked_idx] = self.masked_word
+
+        while len(original_tokens) < self.token_length:
+            original_tokens.append(self.padding_word)
+        while len(masked_tokens) < self.token_length:
+            masked_tokens.append(self.padding_word)
+
+        masked_pos = np.zeros(self.token_length)
+        for masked_idx in masked_idxs:
+            masked_pos[masked_idx] = 1
+        
+        original_tokens = self.tokenizer.convert_tokens_to_ids(original_tokens)
+        masked_tokens = self.tokenizer.convert_tokens_to_ids(masked_tokens)
+
+        original_tokens = torch.as_tensor(original_tokens, dtype=torch.long)
+        masked_tokens = torch.as_tensor(masked_tokens, dtype=torch.long)
+        masked_pos = torch.as_tensor(masked_pos, dtype=torch.long)
+
+        return original_tokens, masked_tokens, masked_pos
+
+    def __len__(self):
+        return len(self.lines)
 
 class GPTDataset(torch.utils.data.Dataset):
 

@@ -273,6 +273,24 @@ class MaskedDecoder(nn.Module):
         dec_self_attns = dec_self_attns.permute([1, 0, 2, 3, 4])
         return dec_outputs, dec_self_attns
 
+class BertModel(nn.Module):
+
+    def __init__(self, vocab_size, d_model, d_ff,
+                 d_k, d_v, n_heads, n_layers, pad_index,
+                 device):
+        super(BertModel, self).__init__()
+        self.encoder = Encoder(
+            vocab_size=vocab_size, d_model=d_model,
+            d_ff=d_ff, d_k=d_k, d_v=d_v,
+            n_heads=n_heads, n_layers=n_layers, pad_index=pad_index,
+            device=device)
+        self.projection = nn.Linear(d_model, vocab_size, bias=False)
+
+    def forward(self, enc_inputs):
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs)
+        logits = self.projection(enc_outputs)
+        return logits, enc_self_attns, enc_outputs
+
 class GPTModel(nn.Module):
 
     def __init__(self, vocab_size, d_model, d_ff,

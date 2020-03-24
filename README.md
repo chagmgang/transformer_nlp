@@ -79,7 +79,8 @@ eng_tokenizer.tokenize('In Chapter 11 Jesus called Lazarus from the tomb and rai
     "end_word": "[EOS]",
     "sep_word": "[SEP]",
     "cls_word": "[CLS]",
-    "pad_word": "[PAD]"
+    "pad_word": "[PAD]",
+    "mask_word": "[MASK]"
 }
 ```
 
