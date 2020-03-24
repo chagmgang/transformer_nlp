@@ -1,10 +1,68 @@
 import tokenization
 import pandas
 import random
+import json
 import torch
 import copy
 
 import numpy as np
+
+class MaskedLMDataset(torch.utils.data.Dataset):
+
+    def __init__(self, tokenizer, vocab_size, token_length,
+                 padding_word='[PAD]',
+                 masked_word='[MASK]', mask_ratio=0.15,
+                 max_pred=5):
+
+        self.tokenizer = tokenizer
+        self.vocab_size = vocab_size
+        self.token_length = token_length
+        self.padding_word = padding_word
+        self.masked_word = masked_word
+        self.mask_ratio = mask_ratio
+        self.max_pred = max_pred
+
+        self.text = pandas.read_csv('data/emotion.csv')
+        self.text = list(self.text['text'])
+        self.text = [self.tokenizer.tokenize(text) for text in self.text]
+        self.text = [self.tokenizer.convert_tokens_to_ids(text)[:self.token_length] for text in self.text]
+        self.mask_idx = self.tokenizer.convert_tokens_to_ids([self.masked_word])[0]
+        self.pad_idx = self.tokenizer.convert_tokens_to_ids([self.padding_word])[0]
+
+    def __getitem__(self, idx):
+        input_ids = self.text[idx]
+        segment_ids = [0] * len(input_ids)
+        
+        n_pred = min(self.max_pred, max(1, int(round(len(input_ids) * self.mask_ratio))))
+        cand_masked_pos = [i for i, token in enumerate(input_ids)]
+        np.random.shuffle(cand_masked_pos)
+        masked_pos, masked_tokens = [], []
+        for pos in cand_masked_pos[:n_pred]:
+            masked_pos.append(pos)
+            masked_tokens.append(input_ids[pos])
+            if np.random.rand() < 0.8:
+                input_ids[pos] = self.mask_idx
+            elif np.random.rand() < 0.5:
+                input_ids[pos] = np.random.choice(self.vocab_size)
+
+        if self.max_pred > n_pred:
+            n_pad = self.max_pred - n_pred
+            masked_tokens.extend([self.pad_idx] * n_pad)
+            masked_pos.extend([self.pad_idx] * n_pad)
+
+        n_pad = self.token_length - len(input_ids)
+        input_ids.extend([self.pad_idx] * n_pad)
+        segment_ids.extend([self.pad_idx] * n_pad)
+
+        input_ids = torch.as_tensor(input_ids, dtype=torch.long)
+        segment_ids = torch.as_tensor(segment_ids, dtype=torch.long)
+        masked_pos = torch.as_tensor(masked_pos, dtype=torch.long)
+        masked_tokens = torch.as_tensor(masked_tokens, dtype=torch.long)
+
+        return input_ids, segment_ids, masked_pos, masked_tokens
+
+    def __len__(self):
+        return len(self.text)
 
 class BertDataset(torch.utils.data.Dataset):
 
@@ -112,83 +170,6 @@ class BertDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.positive_idx)
-
-
-if __name__ == '__main__':
-    import json
-    config = json.load(open('config.json'))
-    tokenizer = tokenization.FullTokenizer(
-            vocab_file='vocab/eng_vocab.txt', do_lower_case=False)
-    dataset = BertDataset(
-        tokenizer=tokenizer, text_file='data/bert_sample.txt',
-        vocab_size=config['eng_vocab_length'], token_length=128,
-        padding_word=config['pad_word'], sep_word=config['sep_word'],
-        cls_word=config['cls_word'], masked_word=config['mask_word'],
-        mask_ratio=0.15)
-
-    for i in range(len(dataset)):
-        print(dataset[i])
-
-
-
-class MaskedLMDataset(torch.utils.data.Dataset):
-
-    def __init__(self, tokenizer, csv_file, vocab_size,
-                 token_length, padding_word='[PAD]',
-                 masked_word='[MASK]', mask_ratio=0.15):
-
-        self.tokenizer = tokenizer
-        self.token_length = token_length
-        self.padding_word = padding_word
-        self.masked_word = masked_word
-        self.mask_ratio = mask_ratio
-        self.vocab_size = vocab_size
-
-        self.dataframe = pandas.read_csv(csv_file)
-        self.lines = list(self.dataframe['text'])
-        self.lines = self.lines[:1000]
-
-    def __getitem__(self, idx):
-        text = self.lines[idx]
-        
-        tokens = self.tokenizer.tokenize(text)
-        tokens = tokens[:self.token_length]
-
-        masked_idxs = np.arange(len(tokens))
-        np.random.shuffle(masked_idxs)
-        masked_idxs = masked_idxs[:int(self.mask_ratio * len(tokens))]
-        
-        original_tokens = copy.deepcopy(tokens)
-        masked_tokens = copy.deepcopy(tokens)
-
-        for masked_idx in masked_idxs:
-            if np.random.rand() < 0.8:
-                masked_tokens[masked_idx] = self.masked_word
-            elif np.random.rand() < 0.5:
-                random_ids = np.random.choice(self.vocab_size)
-                random_token = self.tokenizer.convert_ids_to_tokens([random_ids])[0]
-                masked_tokens[masked_idx] = random_token
-
-        while len(original_tokens) < self.token_length:
-            original_tokens.append(self.padding_word)
-        while len(masked_tokens) < self.token_length:
-            masked_tokens.append(self.padding_word)
-
-        masked_pos = np.zeros(self.token_length)
-        for masked_idx in masked_idxs:
-            masked_pos[masked_idx] = 1
-        
-        original_tokens = self.tokenizer.convert_tokens_to_ids(original_tokens)
-        masked_tokens = self.tokenizer.convert_tokens_to_ids(masked_tokens)
-
-        original_tokens = torch.as_tensor(original_tokens, dtype=torch.long)
-        masked_tokens = torch.as_tensor(masked_tokens, dtype=torch.long)
-        masked_pos = torch.as_tensor(masked_pos, dtype=torch.long)
-
-        return original_tokens, masked_tokens, masked_pos
-
-    def __len__(self):
-        return len(self.lines)
 
 class GPTDataset(torch.utils.data.Dataset):
 

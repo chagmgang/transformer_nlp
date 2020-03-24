@@ -1,3 +1,5 @@
 __pycache__/
+nohup.out
+runs/
 .vscode/
 .DS_Store/

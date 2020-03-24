@@ -6,21 +6,6 @@ import datasets
 from transformer.model import BertModel
 from torch.utils.tensorboard import SummaryWriter
 
-def bert_masked_lm_loss(logits, original_tokens, masked_poses, criterion):
-    masked_tokens = []
-    masked_logits = []
-    batch, seq_length = masked_poses.shape
-    for i in range(batch):
-        for j in range(seq_length):
-            if masked_poses[i, j] == 1:
-                masked_tokens.append(original_tokens[i, j])
-                masked_logits.append(logits[i, j])
-    masked_tokens = torch.stack(masked_tokens)
-    masked_logits = torch.stack(masked_logits)
-
-    loss = criterion(masked_logits, masked_tokens)
-    return loss
-
 def train():
 
     config = json.load(open('config.json'))
