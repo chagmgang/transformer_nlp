@@ -3,6 +3,7 @@
 * Transformer Encoder Emotion Classifier
 * Transformer Translation Model
 * Transformer GPT2
+* Transformer BERT
 
 ## Data
 
@@ -12,6 +13,15 @@
 * GPT2 Data from Some News in [Naver News](https://news.naver.com/)
 
 ### Dataset Shape
+
+* bert sample txt file in `data/bert_sample.txt`
+* format
+```
+The rain had only ceased with the gray streaks of morning at Blazing Star, and the settlement awoke to a moral sense of cleanliness, and the finding of forgotten knives, tin cups, and smaller camp utensils, where the heavy showers had washed away the debris and dust heaps before the cabin doors.
+Indeed, it was recorded in Blazing Star that a fortunate early riser had once picked up on the highway a solid chunk of gold quartz which the rain had freed from its incumbering soil, and washed into immediate and glittering popularity.
+Possibly this may have been the reason why early risers in that locality, during the rainy season, adopted a thoughtful habit of body, and seldom lifted their eyes to the rifted or india-ink washed skies above them.
+"Cass" Beard had risen early that morning, but not with a view to discovery.
+```
 
 * emotion csv file in `data/emotion.csv`
 * format
@@ -73,8 +83,8 @@ eng_tokenizer.tokenize('In Chapter 11 Jesus called Lazarus from the tomb and rai
     "d_ff": 2048,
     "d_k": 64,
     "d_v": 64,
-    "num_layers": 12,
-    "num_heads": 8,
+    "num_layers": 8,
+    "num_heads": 12,
     "start_word": "[SOS]",
     "end_word": "[EOS]",
     "sep_word": "[SEP]",
@@ -99,6 +109,11 @@ python example_generate.py
 * Translation
 ```
 python example_translation.py
+```
+
+* BERT Encoding
+```
+python example_bert.py
 ```
 
 ## Reference
