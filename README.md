@@ -96,24 +96,21 @@ eng_tokenizer.tokenize('In Chapter 11 Jesus called Lazarus from the tomb and rai
 
 ## Test Command
 
-* Emotion Classification
+* With your big data
 ```
 python example/classifier.py
-```
-
-* Text Generation
-```
-python example/generate.py
-```
-
-* Translation
-```
 python example/translation.py
+python example/generate.py
+python example/bert.py
 ```
 
-* BERT Encoding
+* With small data test in notebook file
+
 ```
-python example/bert.py
+classifier.ipynb
+translation.ipynb
+generate.ipynb
+bert.ipynb
 ```
 
 ## Reference
