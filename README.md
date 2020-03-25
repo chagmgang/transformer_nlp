@@ -83,8 +83,8 @@ eng_tokenizer.tokenize('In Chapter 11 Jesus called Lazarus from the tomb and rai
     "d_ff": 2048,
     "d_k": 64,
     "d_v": 64,
-    "num_layers": 8,
-    "num_heads": 12,
+    "num_layers": 12,
+    "num_heads": 8,
     "start_word": "[SOS]",
     "end_word": "[EOS]",
     "sep_word": "[SEP]",
@@ -98,22 +98,22 @@ eng_tokenizer.tokenize('In Chapter 11 Jesus called Lazarus from the tomb and rai
 
 * Emotion Classification
 ```
-python example_classifier.py
+python example/classifier.py
 ```
 
 * Text Generation
 ```
-python example_generate.py
+python example/generate.py
 ```
 
 * Translation
 ```
-python example_translation.py
+python example/translation.py
 ```
 
 * BERT Encoding
 ```
-python example_bert.py
+python example/bert.py
 ```
 
 ## Reference
